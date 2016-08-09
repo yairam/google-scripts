@@ -29,6 +29,7 @@ var UNIT_MAPPING = {
 };
 
 var ADD_LABEL_TO_THREAD_LIMIT = 100;
+var REMOVE_LABEL_TO_THREAD_LIMIT = 100;
 
 function main() {
   processUnresponded();
@@ -36,7 +37,7 @@ function main() {
 }
 
 function processUnresponded() {
-  var threads = GmailApp.search('is:sent from:me -in:chats older_than:' + minTime + ' newer_than:' + maxTime),
+  var threads = GmailApp.search('is:sent from:me -in:chats  -"Out of office" older_than:' + minTime + ' newer_than:' + maxTime),
       threadMessages = GmailApp.getMessagesForThreads(threads),
       unrespondedThreads = [],
       minTimeAgo = new Date();
@@ -179,7 +180,16 @@ function cleanUp() {
     }
   });
 
-  label.removeFromThreads(expiredThreads);
-  iLabel.removeFromThreads(expiredThreads);
+    // removeFromThreads has a limit of 100 threads. Use batching.
+  if (expiredThreads.length > REMOVE_LABEL_TO_THREAD_LIMIT) {
+    for (var i = 0; i < Math.ceil(expiredThreads.length / REMOVE_LABEL_TO_THREAD_LIMIT); i++) {
+      label.removeFromThreads(expiredThreads.slice(100 * i, 100 * (i + 1)));
+      iLabel.removeFromThreads(expiredThreads.slice(100 * i, 100 * (i + 1)));
+    }
+  } else {
+      label.removeFromThreads(expiredThreads);
+      iLabel.removeFromThreads(expiredThreads);
+  }
+  
   Logger.log(expiredThreads.length + ' unresponded messages expired.');
 }
